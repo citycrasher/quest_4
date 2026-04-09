@@ -530,46 +530,47 @@
     /* Scorecard overlay styles */
     #scorecard-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(4, 10, 25, 0.75);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      background: rgba(4, 10, 25, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
       z-index: 100;
       display: none;
       justify-content: center;
       align-items: center;
-      padding: 20px;
+      padding: 0;
     }
     #scorecard-panel {
-      background: rgba(10, 25, 55, 0.9);
-      border: 4px solid #00d2ff;
-      border-radius: 20px;
-      width: 90%; max-width: 1000px;
-      max-height: 90vh;
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      width: 100%; max-width: 1200px;
+      height: 100%; max-height: none;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 0 50px rgba(0, 210, 255, 0.4);
+      box-shadow: none;
     }
     #scorecard-panel h2 {
       font-family: 'Bangers', cursive;
-      font-size: 48px;
+      font-size: 60px;
       color: #00ff88;
       text-align: center;
-      margin: 24px 0 10px 0;
+      margin: 40px 0 20px 0;
       text-shadow: 0 4px 10px rgba(0,0,0,0.5);
       letter-spacing: 2px;
     }
     #scorecard-content {
       overflow-y: auto;
-      padding: 0 30px 20px 30px;
+      padding: 0 30px 40px 30px;
       color: #fff;
       font-family: 'Nunito', sans-serif;
+      flex: 1;
     }
     #scorecard-content h3 {
-      font-size: 26px;
+      font-size: 28px;
       color: #00d2ff;
-      margin: 20px 0 10px 0;
+      margin: 20px 0 15px 0;
       border-bottom: 2px solid rgba(0, 210, 255, 0.3);
-      padding-bottom: 5px;
+      padding-bottom: 8px;
     }
     .sc-table {
       width: 100%; border-collapse: collapse; margin-bottom: 30px;
@@ -2432,9 +2433,10 @@
         this.rad = 22;                // Head radius (Thicker)
         this.mx = this.hx; this.my = this.hy - 100;
         this.path = [];
-        this.len = 4;                 // Initial Number of body segments (Head + 3 tail circles)
+        this.len = globalSnakeLen;    // Use globally persisted snake length
         this.gap = 5;                 // Distance path items between rendering segments
         this.speed = 4;               // Reduced Speed a little
+
 
         // Pre-fill path downward so it spawns neatly
         for (let i = 0; i < this.len * this.gap; i++) {
@@ -2685,7 +2687,8 @@
           if (Math.hypot(this.hx - f.x, this.hy - f.y) < this.rad + 8) {
             this.foods.splice(i, 1);
             sCk(); // Eat Sound
-            this.len += 1; // Body grows by 1 circle per food!
+            this.len += 1; globalSnakeLen = this.len; // Body grows by 1 circle per food!
+
             this._spawnFood();
           }
         }
@@ -2694,7 +2697,7 @@
           if (Math.hypot(this.hx - n.x, this.hy - n.y) < this.rad + n.r) {
             this._expl(n.x, n.y, n.col);
             if (n.i === this.q.a) {
-              this.len += 2; // Grow 2 segments on correct pick
+              this.len += 2; globalSnakeLen = this.len; // Grow 2 segments on correct pick
               burst(n.x, n.y, '#00ff88', 120, 20); sOk(); this.done = true; setTimeout(() => { this.done = false; this.ans(n.i); }, 600);
             } else {
               burst(n.x, n.y, '#ff3366', 150, 25); sNo(); this.done = true; setTimeout(() => { this.done = false; this.ans(-1); }, 600);
@@ -3485,12 +3488,16 @@
     }
 
     let curQSubIdx = 1; // Tracks which sub-question (1 or 2) is currently active
+    let globalSnakeLen = 4; // Tracks snake length across multiple sub-questions
     function startLvl(n, qSubIdx = 1, preserveLives = false) {
       parts.length = 0;
       scene = 'level'; curLvlN = n;
       curQSubIdx = qSubIdx; // Always remember which sub-question we're on
-      // Only reset lives when starting a NEW stage (not on wrong-answer retries or between sub-questions)
-      if (!preserveLives) gameLives = 3;
+      // Only reset lives and snake length when starting a NEW stage
+      if (!preserveLives) {
+        gameLives = 3;
+        globalSnakeLen = 4;
+      }
 
       const qIdx = (n - 1) * 2 + (qSubIdx - 1);
       const qb = document.getElementById('qb');
@@ -3691,12 +3698,7 @@
         cx.fillText('Terminez toutes les \u00e9tapes avec au moins 2 vies pour la d\u00e9bloquer', W / 2, legY + 40);
       }
 
-      // Click to return
-      const pulse = Math.abs(Math.sin(Date.now() * .003));
-      cx.fillStyle = `rgba(0, 255, 136, ${.5 + pulse * .5})`; cx.font = 'bold 26px Nunito';
-      cx.textAlign = 'center';
-      cx.fillText('>>> CLIQUEZ POUR VOIR LE SCORECARD ET LES R\u00c9PONSES <<<', W / 2, H - 50);
-
+      // Vignette effect over everything
       drwVignette(0.4);
     }
 
@@ -3830,7 +3832,7 @@
       if (cd.isLegendary) {
         scene = 'win'; initWps();
         document.getElementById('instr-btn').style.display = 'none';
-        setTimeout(showScorecardOverlay, 1500); // Show directly after a brief firework spectacle
+        showScorecardOverlay(); // Show directly without delay
         return;
       }
 
@@ -3848,7 +3850,7 @@
         // No legendary — go to win screen
         scene = 'win'; initWps();
         document.getElementById('instr-btn').style.display = 'none';
-        setTimeout(showScorecardOverlay, 1500); // Show directly after a brief firework spectacle
+        showScorecardOverlay(); // Show directly without delay
       } else {
         // Advance to next stage on map
         autoAdvanceMap(cd.stage);
