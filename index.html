@@ -526,9 +526,87 @@
     #pause-close-btn:active {
       transform: scale(0.95);
     }
+
+    /* Scorecard overlay styles */
+    #scorecard-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(4, 10, 25, 0.75);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 100;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    #scorecard-panel {
+      background: rgba(10, 25, 55, 0.9);
+      border: 4px solid #00d2ff;
+      border-radius: 20px;
+      width: 90%; max-width: 1000px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 50px rgba(0, 210, 255, 0.4);
+    }
+    #scorecard-panel h2 {
+      font-family: 'Bangers', cursive;
+      font-size: 48px;
+      color: #00ff88;
+      text-align: center;
+      margin: 24px 0 10px 0;
+      text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      letter-spacing: 2px;
+    }
+    #scorecard-content {
+      overflow-y: auto;
+      padding: 0 30px 20px 30px;
+      color: #fff;
+      font-family: 'Nunito', sans-serif;
+    }
+    #scorecard-content h3 {
+      font-size: 26px;
+      color: #00d2ff;
+      margin: 20px 0 10px 0;
+      border-bottom: 2px solid rgba(0, 210, 255, 0.3);
+      padding-bottom: 5px;
+    }
+    .sc-table {
+      width: 100%; border-collapse: collapse; margin-bottom: 30px;
+      font-size: 20px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .sc-table th, .sc-table td {
+      border: 1px solid rgba(0, 210, 255, 0.3);
+      padding: 12px 15px; text-align: center;
+    }
+    .sc-table th { background: rgba(0, 210, 255, 0.2); color: #00d2ff; }
+    .sc-item {
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 20px;
+      border-left: 5px solid #00d2ff;
+    }
+    .sc-item .sc-lvl { font-size: 14px; color: rgba(255,255,255,0.6); margin-bottom: 6px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; }
+    .sc-item .sc-q { font-size: 22px; font-weight: bold; color: #fff; margin-bottom: 12px; line-height: 1.3; }
+    .sc-item .sc-a { font-size: 18px; color: #00ff88; margin-bottom: 8px; }
+    .sc-item .sc-j { font-size: 17px; color: #ffb700; font-style: italic; line-height: 1.4; }
+    .sc-btn-close {
+      margin: 20px auto 30px auto;
+      padding: 15px 50px;
+      background: linear-gradient(135deg, #00d2ff, #0077ff);
+      color: #fff; border: 2px solid rgba(255,255,255,0.4); border-radius: 14px;
+      font-family: 'Bangers', cursive; font-size: 28px; letter-spacing: 1px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0,210,255,0.5);
+      transition: transform 0.2s, filter 0.2s;
+    }
+    .sc-btn-close:hover { transform: scale(1.05); filter: brightness(1.2); }
   </style>
 </head>
-
 <body>
   <canvas id="cv"></canvas>
   <div id="flash-overlay"></div>
@@ -578,6 +656,17 @@
       <div class="pause-text" id="pause-instr-text"></div>
       <div class="pause-status" id="pause-status">Votre progression est préservée.</div>
       <button id="pause-close-btn" onclick="closeInstructions()">▶️ Reprendre le jeu</button>
+    </div>
+  </div>
+
+  <!-- End Game Scorecard and Justifications Overlay -->
+  <div id="scorecard-overlay">
+    <div id="scorecard-panel">
+      <h2>RÉCAPITULATIF ET SCORECARD</h2>
+      <div id="scorecard-content">
+         <!-- Dynamically populated -->
+      </div>
+      <button class="sc-btn-close" onclick="hideScorecardOverlay()">RETOURNER À LA CARTE</button>
     </div>
   </div>
 
@@ -2498,15 +2587,15 @@
         });
 
         if (!this.crashed) {
-          // Snake body — vivid green with darker edge
-          cx.shadowBlur = 4; cx.shadowColor = 'rgba(0,80,0,0.4)';
+          // Snake body — bright orange gradient
+          cx.shadowBlur = 4; cx.shadowColor = 'rgba(150,50,0,0.4)';
           for (let i = this.len - 1; i >= 1; i--) {
             let p = this.path[i * this.gap];
             if (!p) continue;
             const sR = Math.max(10, this.rad * (1 - (i / this.len) * 0.2));
             const g = cx.createRadialGradient(p.x, p.y, 0, p.x, p.y, sR);
-            g.addColorStop(0, '#a8e063'); // Light lime center
-            g.addColorStop(1, '#2d8a00'); // Deep green edge
+            g.addColorStop(0, '#ffaa00'); // Bright orange center
+            g.addColorStop(1, '#cc5500'); // Deep orange edge
             cx.globalAlpha = Math.max(0.35, 1 - (i / this.len) * 0.75);
             cx.fillStyle = g; cx.beginPath(); cx.arc(p.x, p.y, sR, 0, Math.PI * 2); cx.fill();
           }
@@ -2514,9 +2603,9 @@
 
           // Head
           const hG = cx.createRadialGradient(this.hx, this.hy, 0, this.hx, this.hy, this.rad);
-          hG.addColorStop(0, '#c5f566'); hG.addColorStop(1, '#2d8a00');
+          hG.addColorStop(0, '#ffcc00'); hG.addColorStop(1, '#cc5500');
           cx.fillStyle = hG;
-          cx.shadowBlur = 15; cx.shadowColor = '#5cb800';
+          cx.shadowBlur = 15; cx.shadowColor = '#ff6600';
           cx.beginPath(); cx.arc(this.hx, this.hy, this.rad, 0, Math.PI * 2); cx.fill();
           cx.shadowBlur = 0;
 
@@ -2605,6 +2694,7 @@
           if (Math.hypot(this.hx - n.x, this.hy - n.y) < this.rad + n.r) {
             this._expl(n.x, n.y, n.col);
             if (n.i === this.q.a) {
+              this.len += 2; // Grow 2 segments on correct pick
               burst(n.x, n.y, '#00ff88', 120, 20); sOk(); this.done = true; setTimeout(() => { this.done = false; this.ans(n.i); }, 600);
             } else {
               burst(n.x, n.y, '#ff3366', 150, 25); sNo(); this.done = true; setTimeout(() => { this.done = false; this.ans(-1); }, 600);
@@ -3350,6 +3440,50 @@
     }
 
     function goMap() { scene = 'map'; lvl = null; document.getElementById('qb').style.display = 'none'; parts.length = 0; document.getElementById('instr-btn').style.display = 'none'; showingCrown = false; crownDisplay = null; }
+    
+    function showScorecardOverlay() {
+      const overlay = document.getElementById('scorecard-overlay');
+      const content = document.getElementById('scorecard-content');
+      const stageNames = ['\u00c9tape 1', '\u00c9tape 2', '\u00c9tape 3', '\u00c9tape 4'];
+      
+      let html = '<div class="sc-scorecard"><h3>Vos R\u00e9sultats</h3><table class="sc-table"><tr><th>\u00c9tape</th><th>Vies Restantes</th><th>Couronne Obtenue</th></tr>';
+      for(let i=0; i<4; i++) {
+        const sr = stageResults.find(s => s.stage === i + 1);
+        const crown = CROWNS[i];
+        let livesIcons = '\u2014';
+        let crownDisp = '\u2014';
+        if(sr) {
+            livesIcons = '';
+            for (let j = 0; j < 3; j++) livesIcons += j < sr.livesRemaining ? '\u2764\ufe0f' : '\ud83d\udda4';
+            crownDisp = `${crown.emoji} ${crown.name}`;
+        }
+        html += `<tr><td>${stageNames[i]}</td><td>${livesIcons}</td><td>${crownDisp}</td></tr>`;
+      }
+      html += '</table></div>';
+
+      html += '<h3>Questions et Explications</h3>';
+      Q.forEach((qObj, idx) => {
+        const lvlNum = Math.floor(idx / 2) + 1;
+        const correctAnsText = qObj.o[qObj.a];
+        html += `
+          <div class="sc-item">
+            <div class="sc-lvl">\u00c9TAPE ${lvlNum}</div>
+            <div class="sc-q">Q${idx+1}: ${qObj.q}</div>
+            <div class="sc-a">\u2705 <strong>R\u00e9ponse correcte :</strong> ${correctAnsText}</div>
+            <div class="sc-j">\ud83d\udca1 <strong>Justification :</strong> ${qObj.j}</div>
+          </div>
+        `;
+      });
+      
+      content.innerHTML = html;
+      overlay.style.display = 'flex';
+    }
+
+    function hideScorecardOverlay() {
+      document.getElementById('scorecard-overlay').style.display = 'none';
+      goMap();
+    }
+
     let curQSubIdx = 1; // Tracks which sub-question (1 or 2) is currently active
     function startLvl(n, qSubIdx = 1, preserveLives = false) {
       parts.length = 0;
@@ -3486,7 +3620,7 @@
       cx.shadowBlur = 0;
 
       // Per-stage crown summary table
-      const stageNames = ['\u00c9tape 1', '\u00c9tape 2', '\u00c9tape 3', '\u00c9tape 4', '\u00c9tape 5'];
+      const stageNames = ['\u00c9tape 1', '\u00c9tape 2', '\u00c9tape 3', '\u00c9tape 4'];
       const rowH = 56;
       const tableY = 230;
       const tableW = 700;
@@ -3497,7 +3631,7 @@
       cx.beginPath(); cx.roundRect(tableX, tableY, tableW, stageNames.length * rowH + 20, 18); cx.fill();
       cx.strokeStyle = 'rgba(0, 210, 255, 0.3)'; cx.lineWidth = 2; cx.stroke();
 
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 4; i++) {
         const ry = tableY + 10 + i * rowH + rowH / 2;
         const sr = stageResults.find(s => s.stage === i + 1);
         const crown = CROWNS[i];
@@ -3559,9 +3693,9 @@
 
       // Click to return
       const pulse = Math.abs(Math.sin(Date.now() * .003));
-      cx.fillStyle = `rgba(255,255,255,${.5 + pulse * .5})`; cx.font = '22px Nunito';
+      cx.fillStyle = `rgba(0, 255, 136, ${.5 + pulse * .5})`; cx.font = 'bold 26px Nunito';
       cx.textAlign = 'center';
-      cx.fillText('Cliquez n\u2019importe o\u00f9 pour revenir \u00e0 la carte', W / 2, H - 50);
+      cx.fillText('>>> CLIQUEZ POUR VOIR LE SCORECARD ET LES R\u00c9PONSES <<<', W / 2, H - 50);
 
       drwVignette(0.4);
     }
@@ -3587,7 +3721,7 @@
       cx.font = 'bold 18px Nunito';
       cx.fillStyle = 'rgba(255,255,255,0.9)';
       const completed = stageResults.length;
-      cx.fillText('Progression : ' + completed + ' / 5', hx, 85);
+      cx.fillText('Progression : ' + completed + ' / 4', hx, 85);
 
       // Draw earned crowns in a row below progress
       if (stageResults.length > 0) {
@@ -3696,6 +3830,7 @@
       if (cd.isLegendary) {
         scene = 'win'; initWps();
         document.getElementById('instr-btn').style.display = 'none';
+        setTimeout(showScorecardOverlay, 1500); // Show directly after a brief firework spectacle
         return;
       }
 
@@ -3713,6 +3848,7 @@
         // No legendary — go to win screen
         scene = 'win'; initWps();
         document.getElementById('instr-btn').style.display = 'none';
+        setTimeout(showScorecardOverlay, 1500); // Show directly after a brief firework spectacle
       } else {
         // Advance to next stage on map
         autoAdvanceMap(cd.stage);
@@ -3747,7 +3883,7 @@
     });
 
     // Change 5: Block canvas interactions when game is paused
-    cv.addEventListener('click', e => { if (gamePaused) return; iac(); if (showingCrown) { dismissCrown(); return; } const p = pt(e); if (scene === 'map') mapClk(p.x, p.y); else if (scene === 'level' && lvl) lvl.clk(p.x, p.y); else if (scene === 'win') goMap(); });
+    cv.addEventListener('click', e => { if (gamePaused) return; iac(); if (showingCrown) { dismissCrown(); return; } const p = pt(e); if (scene === 'map') mapClk(p.x, p.y); else if (scene === 'level' && lvl) lvl.clk(p.x, p.y); else if (scene === 'win') showScorecardOverlay(); });
     cv.addEventListener('mousemove', e => { if (gamePaused) return; const p = pt(e); if (scene === 'level' && lvl) lvl.mm(p.x, p.y); });
     cv.addEventListener('mousedown', e => { if (gamePaused) return; const p = pt(e); if (scene === 'level' && lvl && lvl.hs && e.button === 0) lvl.md && lvl.md(p.x, p.y); });
     cv.addEventListener('mouseup', e => { if (gamePaused) return; const p = pt(e); if (scene === 'level' && lvl) lvl.mu(p.x, p.y); });
